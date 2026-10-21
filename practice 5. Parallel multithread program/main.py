@@ -1,6 +1,6 @@
 from numpy import zeros
 from numpy.random import randint
-from threading import Thread, Lock
+from threading import Thread
 
 
 def generate_numeric_array(low: int, max: int, size: int):
@@ -55,8 +55,8 @@ def build_c_thread(A, B, num_threads: int):
         threads.append(thread)
         thread.start()
 
-        for thread in threads:
-            thread.join()
+    for thread in threads:
+        thread.join()
 
     return C
 
@@ -64,5 +64,5 @@ def build_c_thread(A, B, num_threads: int):
 if __name__ == "__main__":
     A = generate_numeric_array(-10, 10, 10)
     B = generate_numeric_array(-10, 10, 10)
-    C = build_c_thread(A, B, num_threads=10)
+    C = build_c_thread(A, B, num_threads=5)
     print(A, B, C, sep="\n")
