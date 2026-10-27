@@ -1,68 +1,32 @@
-from numpy import zeros
+from numpy import maximum, zeros, array_split, arange
 from numpy.random import randint
 from threading import Thread
 
 
-def generate_numeric_array(low: int, max: int, size: int):
-    return randint(low, max, size)
-
-
-def assert_same_length(*arrays):
-    n = len(arrays[0])
-    for a in arrays[1:]:
-        if len(a) != n:
-            raise ValueError(f"Массивы разной длины: {n} != {len(a)}")
-
-
-def compute(A, B, C, start, end):
-    n = len(A)
+def compute(P, C, start, end):
+    n = len(P)
     for i in range(start, end):
-        s = 0
-        for j in (i - 1, i, i + 1):
-            if 0 <= j < n:
-                if A[j] > 0:
-                    s += A[j]
-                if B[j] > 0:
-                    s += B[j]
-        C[i] = s
+        C[i] = P[max(0, i - 1) : min(n, i + 2)].sum()
 
 
-def find_edges(num_threads: int, size: int):
-    edges = []
-    for i in range(num_threads + 1):
-        edges.append((size * i) // num_threads)
-    return edges
+def build_c_thread(A, B, num_threads):
 
-
-def build_c_thread(A, B, num_threads: int):
-
-    assert_same_length(A, B)
-
-    size = len(A)
-    C = zeros(size, dtype=int)
-
-    edges = find_edges(num_threads, size)
+    P = maximum(A, 0) + maximum(B, 0)
+    C = zeros(len(P), dtype=int)
 
     threads = []
-    for t in range(num_threads):
-        start = edges[t]
-        end = edges[t + 1]
+    for chunk in array_split(arange(len(P)), num_threads):
+        if len(chunk):
+            t = Thread(target=compute, args=(P, C, chunk[0], chunk[-1] + 1))
+            t.start()
+            threads.append(t)
 
-        if start >= end:
-            continue
-
-        thread = Thread(target=compute, args=(A, B, C, start, end))
-        threads.append(thread)
-        thread.start()
-
-    for thread in threads:
-        thread.join()
-
+    for t in threads:
+        t.join()
     return C
 
 
 if __name__ == "__main__":
-    A = generate_numeric_array(-10, 10, 10)
-    B = generate_numeric_array(-10, 10, 10)
-    C = build_c_thread(A, B, num_threads=5)
-    print(A, B, C, sep="\n")
+    A = randint(-10, 10, 10)
+    B = randint(-10, 10, 10)
+    print(A, B, build_c_thread(A, B, num_threads=5), sep="\n")
